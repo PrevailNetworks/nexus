@@ -49,18 +49,24 @@ export const TaskManagementDialog: FC<TaskManagementDialogProps> = ({
   const [startDate, setStartDate] = useState<Date>();
   const [availableEmployees, setAvailableEmployees] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [startDateOpen, setStartDateOpen] = useState(false);
+  const [dueDateOpen, setDueDateOpen] = useState(false);
 
   // Load available employees
   useEffect(() => {
     const loadEmployees = async () => {
-      if (!typedUser?.organizationId || !open) return;
+      if (!typedUser?.organizationId || !open) {
+        setAvailableEmployees([]);
+        return;
+      }
       
+      setLoadingEmployees(true);
       try {
         const employeesQuery = query(
           collection(firestore, FIRESTORE_COLLECTIONS.USERS),
-          where('organizationId', '==', typedUser.organizationId),
-          where('status', '!=', 'disabled')
+          where('organizationId', '==', typedUser.organizationId)
         );
         
         const snapshot = await getDocs(employeesQuery);
@@ -69,9 +75,17 @@ export const TaskManagementDialog: FC<TaskManagementDialogProps> = ({
           uid: doc.id
         } as AppUser));
         
-        setAvailableEmployees(employees);
+        // Filter out disabled users and sort by displayName
+        const activeEmployees = employees
+          .filter(emp => emp.status !== 'disabled')
+          .sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
+        
+        setAvailableEmployees(activeEmployees);
       } catch (error) {
         console.error('Error loading employees:', error);
+        setAvailableEmployees([]);
+      } finally {
+        setLoadingEmployees(false);
       }
     };
 
@@ -272,7 +286,7 @@ export const TaskManagementDialog: FC<TaskManagementDialogProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Start Date</Label>
-              <Popover>
+              <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -289,7 +303,10 @@ export const TaskManagementDialog: FC<TaskManagementDialogProps> = ({
                   <Calendar
                     mode="single"
                     selected={startDate}
-                    onSelect={setStartDate}
+                    onSelect={(date) => {
+                      setStartDate(date);
+                      setStartDateOpen(false);
+                    }}
                     initialFocus
                   />
                 </PopoverContent>
@@ -298,7 +315,7 @@ export const TaskManagementDialog: FC<TaskManagementDialogProps> = ({
 
             <div>
               <Label>Due Date</Label>
-              <Popover>
+              <Popover open={dueDateOpen} onOpenChange={setDueDateOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -315,7 +332,10 @@ export const TaskManagementDialog: FC<TaskManagementDialogProps> = ({
                   <Calendar
                     mode="single"
                     selected={dueDate}
-                    onSelect={setDueDate}
+                    onSelect={(date) => {
+                      setDueDate(date);
+                      setDueDateOpen(false);
+                    }}
                     initialFocus
                   />
                 </PopoverContent>
@@ -340,26 +360,41 @@ export const TaskManagementDialog: FC<TaskManagementDialogProps> = ({
                 )}
                 
                 <div className="max-h-40 overflow-y-auto space-y-2">
-                  {filteredEmployees.map((employee) => (
-                    <div
-                      key={employee.uid}
-                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50"
-                    >
-                      <Checkbox
-                        checked={selectedAssignees.includes(employee.uid)}
-                        onCheckedChange={() => handleAssigneeToggle(employee.uid)}
-                      />
-                      <img
-                        src={employee.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${employee.displayName}`}
-                        alt={employee.displayName || ''}
-                        className="w-8 h-8 rounded-full"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{employee.displayName}</p>
-                        <p className="text-xs text-muted-foreground truncate">{employee.email}</p>
+                  {loadingEmployees ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="text-center space-y-2">
+                        <div className="h-4 w-4 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                        <p className="text-xs text-muted-foreground">Loading employees...</p>
                       </div>
                     </div>
-                  ))}
+                  ) : filteredEmployees.length === 0 ? (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-muted-foreground">
+                        {searchQuery ? 'No employees found matching your search.' : 'No employees available.'}
+                      </p>
+                    </div>
+                  ) : (
+                    filteredEmployees.map((employee) => (
+                      <div
+                        key={employee.uid}
+                        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50"
+                      >
+                        <Checkbox
+                          checked={selectedAssignees.includes(employee.uid)}
+                          onCheckedChange={() => handleAssigneeToggle(employee.uid)}
+                        />
+                        <img
+                          src={employee.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${employee.displayName}`}
+                          alt={employee.displayName || ''}
+                          className="w-8 h-8 rounded-full"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{employee.displayName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{employee.email}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 {selectedAssignees.length > 0 && (

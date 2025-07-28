@@ -8,8 +8,23 @@ interface PopoverContextType {
 
 const PopoverContext = React.createContext<PopoverContextType | undefined>(undefined)
 
-const Popover: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [open, setOpen] = React.useState(false)
+interface PopoverProps {
+  children: React.ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+const Popover: React.FC<PopoverProps> = ({ children, open: controlledOpen, onOpenChange }) => {
+  const [internalOpen, setInternalOpen] = React.useState(false)
+  
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen
+  const setOpen = React.useCallback((newOpen: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(newOpen)
+    } else {
+      setInternalOpen(newOpen)
+    }
+  }, [onOpenChange])
   
   return (
     <PopoverContext.Provider value={{ open, setOpen }}>
