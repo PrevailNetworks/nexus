@@ -340,17 +340,17 @@ export interface Invite {
     createdAt: Timestamp;
 }
 
-export type Priority = 'High' | 'Medium' | 'Low';
+export type Priority = 'high' | 'medium' | 'low';
 
 export const TaskStatus = {
-    PENDING: 'Pending',
-    IN_PROGRESS: 'In Progress',
-    COMPLETED: 'Completed',
+    TODO: 'todo',
+    IN_PROGRESS: 'in_progress', 
+    COMPLETED: 'completed',
 } as const;
 
 export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
 
-export type ProjectViewType = 'board' | 'list' | 'timeline';
+export type ProjectViewType = 'board' | 'list' | 'calendar';
 
 export interface Project {
     id: string;
@@ -359,8 +359,11 @@ export interface Project {
     description?: string;
     ownerId: string;
     memberIds: string[];
+    priority?: Priority;
     createdAt: Timestamp;
     updatedAt: Timestamp;
+    startDate?: Timestamp;
+    endDate?: Timestamp;
     view?: ProjectViewType;
     color?: string;
 }
