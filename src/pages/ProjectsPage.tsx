@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageWrapper, PageSection } from '@/components/PageWrapper';
 import { ProjectManagementDialog } from '@/components/projects/ProjectManagementDialog';
+import { ProjectCreationSheet } from '@/components/projects/ProjectCreationSheet';
 import { TaskManagementDialog } from '@/components/projects/TaskManagementDialog';
 import { TaskCard } from '@/components/projects/TaskCard';
 import { useAuth } from '@/hooks/useAuth';
@@ -74,6 +75,7 @@ export const ProjectsPage: FC = () => {
   
   // Dialog state
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [projectSheetOpen, setProjectSheetOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -180,13 +182,13 @@ export const ProjectsPage: FC = () => {
   const handleCreateProject = () => {
     setEditingProject(null);
     setDialogMode('create');
-    setProjectDialogOpen(true);
+    setProjectSheetOpen(true);
   };
 
   const handleEditProject = (project: Project) => {
     setEditingProject(project);
     setDialogMode('edit');
-    setProjectDialogOpen(true);
+    setProjectDialogOpen(true); // Use old dialog for editing existing projects
   };
 
   const handleCreateTask = () => {
@@ -579,7 +581,14 @@ export const ProjectsPage: FC = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Dialogs */}
+        {/* Dialogs and Sheets */}
+        <ProjectCreationSheet
+          open={projectSheetOpen}
+          onOpenChange={setProjectSheetOpen}
+          project={editingProject}
+          mode={dialogMode}
+        />
+
         <ProjectManagementDialog
           open={projectDialogOpen}
           onOpenChange={setProjectDialogOpen}
