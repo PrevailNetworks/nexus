@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
 import { FIRESTORE_COLLECTIONS, Role, type Project, type Task, type AppUser, type Priority } from '@/types';
 import { firestore } from '@/lib/firebase';
@@ -38,12 +39,6 @@ const getPriorityColor = (priority?: Priority) => {
   }
 };
 
-const getProgressColor = (progress: number) => {
-  if (progress >= 80) return 'bg-green-500';
-  if (progress >= 50) return 'bg-blue-500';
-  if (progress >= 25) return 'bg-yellow-500';
-  return 'bg-gray-500';
-};
 
 export const Projects: FC = () => {
   const { user: currentUser } = useAuth();
@@ -255,12 +250,7 @@ export const Projects: FC = () => {
                             <span className="text-muted-foreground">Progress</span>
                             <span className="font-medium">{progress}%</span>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                            <div 
-                              className={`h-1.5 rounded-full transition-all duration-300 ${getProgressColor(progress)}`}
-                              style={{ width: `${progress}%` }}
-                            ></div>
-                          </div>
+                          <Progress value={progress} className="h-1.5" />
                         </div>
                       )}
 

@@ -260,11 +260,13 @@ export const ProjectManagementDialog: FC<ProjectManagementDialogProps> = ({
               <Label htmlFor="color">Project Color</Label>
               <div className="mt-2 flex flex-wrap gap-2">
                 {colorOptions.map((colorOption) => (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     key={colorOption.value}
                     className={cn(
-                      "w-8 h-8 rounded-full border-2 transition-all",
+                      "w-8 h-8 p-0 rounded-full border-2 transition-all hover:scale-105",
                       color === colorOption.value ? "border-gray-900 scale-110" : "border-gray-300"
                     )}
                     style={{ backgroundColor: colorOption.value }}

@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageWrapper, PageSection } from '@/components/PageWrapper';
@@ -426,12 +427,7 @@ export const ProjectsPage: FC = () => {
                                   <span>Progress</span>
                                   <span className="font-medium">{progress}%</span>
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                                  <div 
-                                    className="h-2 rounded-full transition-all duration-300 bg-blue-500"
-                                    style={{ width: `${progress}%` }}
-                                  ></div>
-                                </div>
+                                <Progress value={progress} className="h-2" />
                               </div>
                             )}
 
