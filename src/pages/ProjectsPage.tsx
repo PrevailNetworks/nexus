@@ -9,13 +9,12 @@ import { ProjectManagementDialog } from '@/components/projects/ProjectManagement
 import { TaskManagementDialog } from '@/components/projects/TaskManagementDialog';
 import { TaskCard } from '@/components/projects/TaskCard';
 import { useAuth } from '@/hooks/useAuth';
-import { FIRESTORE_COLLECTIONS, Role, type Project, type Task, type AppUser, Priority } from '@/types';
+import { FIRESTORE_COLLECTIONS, Role, type Project, type Task, type AppUser, type Priority } from '@/types';
 import { firestore } from '@/lib/firebase';
 import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc, getDocs } from 'firebase/firestore';
 import { 
   ArrowLeft, 
   Search, 
-  Filter, 
   Plus, 
   Calendar,
   Users,
@@ -23,7 +22,6 @@ import {
   Clock,
   AlertCircle,
   MoreVertical,
-  FolderOpen,
   Target,
   CheckSquare,
   Briefcase
@@ -127,8 +125,8 @@ export const ProjectsPage: FC = () => {
         
         const snapshot = await getDocs(employeesQuery);
         const employeesData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
+          ...doc.data(),
+          uid: doc.id
         } as AppUser));
         
         setEmployees(employeesData);
@@ -202,15 +200,6 @@ export const ProjectsPage: FC = () => {
     setTaskDialogOpen(true);
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    if (!typedUser?.organizationId) return;
-    
-    try {
-      await deleteDoc(doc(firestore, `organizations/${typedUser.organizationId}/${FIRESTORE_COLLECTIONS.PROJECTS}`, projectId));
-    } catch (error) {
-      console.error('Error deleting project:', error);
-    }
-  };
 
   const handleDeleteTask = async (taskId: string) => {
     if (!typedUser?.organizationId) return;
@@ -234,7 +223,6 @@ export const ProjectsPage: FC = () => {
   };
 
   const canManageProjects = typedUser?.role === Role.ADMIN || typedUser?.role === Role.MANAGER;
-  const standaloneOperTasks = tasks.filter(task => !task.projectId);
 
   if (loading) {
     return (
@@ -389,7 +377,7 @@ export const ProjectsPage: FC = () => {
               filteredProjects.map((project, index) => {
                 const projectTasks = getProjectTasks(project.id);
                 const progress = getProjectProgress(project);
-                const assignedMembers = project.memberIds.map(id => employees.find(emp => emp.id === id)).filter(Boolean);
+                const assignedMembers = project.memberIds.map(id => employees.find(emp => emp.uid === id)).filter(Boolean);
                 
                 return (
                   <PageSection key={project.id} index={index + 3}>
@@ -473,7 +461,7 @@ export const ProjectsPage: FC = () => {
                                 <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">Team:</span>
                                 <div className="flex flex-wrap gap-1">
                                   {assignedMembers.slice(0, 3).map((member) => (
-                                    <Badge key={member!.id} variant="secondary" className="text-xs">
+                                    <Badge key={member!.uid} variant="secondary" className="text-xs">
                                       {member!.displayName}
                                     </Badge>
                                   ))}

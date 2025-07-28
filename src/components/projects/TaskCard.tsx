@@ -95,7 +95,7 @@ export const TaskCard: FC<TaskCardProps> = ({
     }
   };
 
-  const assignees = task.assigneeIds?.map(id => employees.find(emp => emp.id === id)).filter(Boolean) || [];
+  const assignees = task.assigneeIds?.map(id => employees.find(emp => emp.uid === id)).filter(Boolean) || [];
   const isAssignedToCurrentUser = task.assigneeIds?.includes(typedUser?.uid || '') || false;
   const canManageTasks = typedUser?.role === Role.ADMIN || typedUser?.role === Role.MANAGER;
   const canEditTask = canManageTasks || isAssignedToCurrentUser;
@@ -206,7 +206,7 @@ export const TaskCard: FC<TaskCardProps> = ({
                 <span className="text-xs text-muted-foreground">Assigned to:</span>
                 <div className="flex flex-wrap gap-1">
                   {assignees.slice(0, 3).map((assignee) => (
-                    <Badge key={assignee!.id} variant="secondary" className="text-xs">
+                    <Badge key={assignee!.uid} variant="secondary" className="text-xs">
                       {assignee!.displayName}
                     </Badge>
                   ))}

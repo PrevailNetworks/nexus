@@ -10,10 +10,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAuth } from '@/hooks/useAuth';
-import { FIRESTORE_COLLECTIONS, Role, type Task, type AppUser, type Project, Priority, TaskStatus, Timestamp } from '@/types';
+import { FIRESTORE_COLLECTIONS, Role, type Task, type AppUser, type Project, type Priority, TaskStatus, Timestamp } from '@/types';
 import { firestore } from '@/lib/firebase';
 import { collection, addDoc, updateDoc, doc, getDocs, query, where } from 'firebase/firestore';
-import { Calendar as CalendarIcon, Users, X } from 'lucide-react';
+import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { useState, useEffect, type FC } from 'react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -65,8 +65,8 @@ export const TaskManagementDialog: FC<TaskManagementDialogProps> = ({
         
         const snapshot = await getDocs(employeesQuery);
         const employees = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
+          ...doc.data(),
+          uid: doc.id
         } as AppUser));
         
         setAvailableEmployees(employees);
@@ -120,8 +120,8 @@ export const TaskManagementDialog: FC<TaskManagementDialogProps> = ({
         projectId: selectedProject || null,
         assigneeIds: selectedAssignees,
         organizationId: typedUser.organizationId,
-        dueDate: dueDate ? Timestamp.fromDate(dueDate) : null,
-        startDate: startDate ? Timestamp.fromDate(startDate) : null,
+        dueDate: dueDate ? Timestamp.fromDate(dueDate) : undefined,
+        startDate: startDate ? Timestamp.fromDate(startDate) : undefined,
         updatedAt: Timestamp.now(),
         assignerId: typedUser.uid,
         assignerName: typedUser.displayName
@@ -156,12 +156,11 @@ export const TaskManagementDialog: FC<TaskManagementDialogProps> = ({
     );
   };
 
-  const canManageTasks = typedUser?.role === Role.ADMIN || typedUser?.role === Role.MANAGER;
   const isEmployee = typedUser?.role === Role.EMPLOYEE;
 
   // Employees can only create tasks for themselves
   const availableAssignees = isEmployee 
-    ? availableEmployees.filter(emp => emp.id === typedUser.uid)
+    ? availableEmployees.filter(emp => emp.uid === typedUser.uid)
     : availableEmployees;
 
   const filteredEmployees = availableAssignees.filter(employee =>
@@ -343,16 +342,16 @@ export const TaskManagementDialog: FC<TaskManagementDialogProps> = ({
                 <div className="max-h-40 overflow-y-auto space-y-2">
                   {filteredEmployees.map((employee) => (
                     <div
-                      key={employee.id}
+                      key={employee.uid}
                       className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50"
                     >
                       <Checkbox
-                        checked={selectedAssignees.includes(employee.id)}
-                        onCheckedChange={() => handleAssigneeToggle(employee.id)}
+                        checked={selectedAssignees.includes(employee.uid)}
+                        onCheckedChange={() => handleAssigneeToggle(employee.uid)}
                       />
                       <img
                         src={employee.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${employee.displayName}`}
-                        alt={employee.displayName}
+                        alt={employee.displayName || ''}
                         className="w-8 h-8 rounded-full"
                       />
                       <div className="flex-1 min-w-0">
@@ -368,7 +367,7 @@ export const TaskManagementDialog: FC<TaskManagementDialogProps> = ({
                     <p className="text-sm font-medium mb-2">Assigned to:</p>
                     <div className="flex flex-wrap gap-2">
                       {selectedAssignees.map((assigneeId) => {
-                        const assignee = availableEmployees.find(emp => emp.id === assigneeId);
+                        const assignee = availableEmployees.find(emp => emp.uid === assigneeId);
                         if (!assignee) return null;
                         
                         return (

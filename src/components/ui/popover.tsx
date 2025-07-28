@@ -32,7 +32,6 @@ const PopoverTrigger = React.forwardRef<
   if (asChild) {
     return React.cloneElement(children as React.ReactElement, {
       onClick: () => setOpen(!open),
-      ref,
       ...props
     })
   }

@@ -10,10 +10,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAuth } from '@/hooks/useAuth';
-import { FIRESTORE_COLLECTIONS, Role, type Project, type AppUser, Priority, ProjectViewType } from '@/types';
+import { FIRESTORE_COLLECTIONS, Role, type Project, type AppUser, type Priority, type ProjectViewType } from '@/types';
 import { firestore } from '@/lib/firebase';
 import { collection, addDoc, updateDoc, doc, getDocs, query, where, Timestamp } from 'firebase/firestore';
-import { Calendar as CalendarIcon, Users, X, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { useState, useEffect, type FC } from 'react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -61,8 +61,8 @@ export const ProjectManagementDialog: FC<ProjectManagementDialogProps> = ({
         
         const snapshot = await getDocs(employeesQuery);
         const employees = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
+          ...doc.data(),
+          uid: doc.id
         } as AppUser));
         
         setAvailableEmployees(employees);
@@ -116,8 +116,8 @@ export const ProjectManagementDialog: FC<ProjectManagementDialogProps> = ({
         color,
         memberIds: selectedMembers,
         organizationId: typedUser.organizationId,
-        startDate: startDate ? Timestamp.fromDate(startDate) : null,
-        endDate: endDate ? Timestamp.fromDate(endDate) : null,
+        startDate: startDate ? Timestamp.fromDate(startDate) : undefined,
+        endDate: endDate ? Timestamp.fromDate(endDate) : undefined,
         updatedAt: Timestamp.now()
       };
 
@@ -337,16 +337,16 @@ export const ProjectManagementDialog: FC<ProjectManagementDialogProps> = ({
                 <div className="max-h-40 overflow-y-auto space-y-2">
                   {filteredEmployees.map((employee) => (
                     <div
-                      key={employee.id}
+                      key={employee.uid}
                       className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50"
                     >
                       <Checkbox
-                        checked={selectedMembers.includes(employee.id)}
-                        onCheckedChange={() => handleMemberToggle(employee.id)}
+                        checked={selectedMembers.includes(employee.uid)}
+                        onCheckedChange={() => handleMemberToggle(employee.uid)}
                       />
                       <img
                         src={employee.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${employee.displayName}`}
-                        alt={employee.displayName}
+                        alt={employee.displayName || ''}
                         className="w-8 h-8 rounded-full"
                       />
                       <div className="flex-1 min-w-0">
@@ -362,7 +362,7 @@ export const ProjectManagementDialog: FC<ProjectManagementDialogProps> = ({
                     <p className="text-sm font-medium mb-2">Selected Members:</p>
                     <div className="flex flex-wrap gap-2">
                       {selectedMembers.map((memberId) => {
-                        const member = availableEmployees.find(emp => emp.id === memberId);
+                        const member = availableEmployees.find(emp => emp.uid === memberId);
                         if (!member) return null;
                         
                         return (
