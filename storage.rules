@@ -1,0 +1,140 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role in ['admin', 'super_admin'];
+    }
+    
+    function isSameOrganization(organizationId) {
+      return isAuthenticated() && getUserData().organizationId == organizationId;
+    }
+    
+    function isActiveUser() {
+      return isAuthenticated() && getUserData().status == 'active';
+    }
+    
+    function isValidImageFile() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isValidImageSize() {
+      return request.resource.size < 10 * 1024 * 1024; // 10MB limit
+    }
+    
+    function isValidDocumentFile() {
+      return request.resource.contentType.matches('(image/.*|application/pdf|text/.*|application/msword|application/vnd.openxmlformats-officedocument.wordprocessingml.document)');
+    }
+    
+    function isValidDocumentSize() {
+      return request.resource.size < 50 * 1024 * 1024; // 50MB limit for documents
+    }
+
+    // Feed images - organization specific
+    match /feed-images/{organizationId}/{imageId} {
+      allow read: if isActiveUser() && isSameOrganization(organizationId);
+      allow write: if isActiveUser() && isSameOrganization(organizationId) && 
+        isValidImageFile() && isValidImageSize();
+      allow delete: if isActiveUser() && isSameOrganization(organizationId);
+    }
+    
+    // Timeclock photos - organization specific
+    match /timeclock-photos/{organizationId}/{photoId} {
+      allow read: if isActiveUser() && isSameOrganization(organizationId);
+      allow write: if isActiveUser() && isSameOrganization(organizationId) && 
+        isValidImageFile() && isValidImageSize();
+      allow delete: if isAdmin() && isSameOrganization(organizationId);
+    }
+    
+    // User profile photos - organization specific
+    match /profile-photos/{organizationId}/{userId}/{photoId} {
+      allow read: if isActiveUser() && isSameOrganization(organizationId);
+      allow write: if isActiveUser() && isSameOrganization(organizationId) && 
+        (request.auth.uid == userId || isAdmin()) &&
+        isValidImageFile() && isValidImageSize();
+      allow delete: if isActiveUser() && isSameOrganization(organizationId) && 
+        (request.auth.uid == userId || isAdmin());
+    }
+    
+    // Task attachments - organization specific
+    match /task-attachments/{organizationId}/{taskId}/{attachmentId} {
+      allow read: if isActiveUser() && isSameOrganization(organizationId);
+      allow write: if isActiveUser() && isSameOrganization(organizationId) && 
+        isValidDocumentFile() && isValidDocumentSize();
+      allow delete: if isActiveUser() && isSameOrganization(organizationId);
+    }
+    
+    // PTO request documents - organization specific
+    match /pto-documents/{organizationId}/{requestId}/{documentId} {
+      allow read: if isActiveUser() && isSameOrganization(organizationId);
+      allow write: if isActiveUser() && isSameOrganization(organizationId) && 
+        isValidDocumentFile() && isValidDocumentSize();
+      allow delete: if isActiveUser() && isSameOrganization(organizationId);
+    }
+    
+    // Employee documents - organization specific (HR documents)
+    match /employee-documents/{organizationId}/{employeeId}/{documentId} {
+      allow read: if isActiveUser() && isSameOrganization(organizationId) && 
+        (request.auth.uid == employeeId || isAdmin());
+      allow write: if isAdmin() && isSameOrganization(organizationId) && 
+        isValidDocumentFile() && isValidDocumentSize();
+      allow delete: if isAdmin() && isSameOrganization(organizationId);
+    }
+    
+    // Company logos and assets - organization specific
+    match /company-assets/{organizationId}/{assetId} {
+      allow read: if isActiveUser() && isSameOrganization(organizationId);
+      allow write: if isAdmin() && isSameOrganization(organizationId) && 
+        isValidImageFile() && isValidImageSize();
+      allow delete: if isAdmin() && isSameOrganization(organizationId);
+    }
+    
+    // Temporary uploads - organization specific (for processing)
+    match /temp-uploads/{organizationId}/{userId}/{uploadId} {
+      allow read: if isActiveUser() && isSameOrganization(organizationId) && 
+        request.auth.uid == userId;
+      allow write: if isActiveUser() && isSameOrganization(organizationId) && 
+        request.auth.uid == userId &&
+        isValidDocumentFile() && isValidDocumentSize();
+      allow delete: if isActiveUser() && isSameOrganization(organizationId) && 
+        request.auth.uid == userId;
+    }
+    
+    // Timesheet exports - organization specific
+    match /exports/{organizationId}/{exportId} {
+      allow read: if isAdmin() && isSameOrganization(organizationId);
+      allow write: if isAdmin() && isSameOrganization(organizationId);
+      allow delete: if isAdmin() && isSameOrganization(organizationId);
+    }
+    
+    // Audit trail files - organization specific (admin only)
+    match /audit-files/{organizationId}/{auditId} {
+      allow read: if isAdmin() && isSameOrganization(organizationId);
+      allow write: if isAdmin() && isSameOrganization(organizationId);
+      allow delete: if isAdmin() && isSameOrganization(organizationId);
+    }
+    
+    // Backup files - organization specific (super admin only)
+    match /backups/{organizationId}/{backupId} {
+      allow read: if isAuthenticated() && getUserData().role == 'super_admin' && 
+        isSameOrganization(organizationId);
+      allow write: if isAuthenticated() && getUserData().role == 'super_admin' && 
+        isSameOrganization(organizationId);
+      allow delete: if isAuthenticated() && getUserData().role == 'super_admin' && 
+        isSameOrganization(organizationId);
+    }
+    
+    // Default deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

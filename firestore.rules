@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function belongsToOrganization(organizationId) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().organizationId == organizationId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // Organizations and their subcollections
+    match /organizations/{organizationId} {
+      allow read: if belongsToOrganization(organizationId);
+      allow write: if belongsToOrganization(organizationId);
+      
+      // Announcements
+      match /announcements/{announcementId} {
+        allow read: if belongsToOrganization(organizationId);
+        allow create: if belongsToOrganization(organizationId) && 
+          getUserData().role in ['admin', 'super_admin'];
+        allow update: if belongsToOrganization(organizationId) && 
+          getUserData().role in ['admin', 'super_admin'];
+        allow delete: if belongsToOrganization(organizationId) && 
+          getUserData().role in ['admin', 'super_admin'];
+      }
+      
+      // Time punches
+      match /timePunches/{punchId} {
+        allow read: if belongsToOrganization(organizationId);
+        allow create: if belongsToOrganization(organizationId) && 
+          request.auth.uid == request.resource.data.userId;
+        allow update: if belongsToOrganization(organizationId) && 
+          (request.auth.uid == resource.data.userId || 
+           getUserData().role in ['manager', 'admin', 'super_admin']);
+        allow delete: if false;
+      }
+      
+      // Feed
+      match /feed/{postId} {
+        allow read: if belongsToOrganization(organizationId);
+        allow create: if belongsToOrganization(organizationId);
+        allow update: if belongsToOrganization(organizationId) && 
+          request.auth.uid == resource.data.authorId;
+        allow delete: if belongsToOrganization(organizationId) && 
+          (request.auth.uid == resource.data.authorId || 
+           getUserData().role in ['admin', 'super_admin']);
+      }
+      
+      // Other subcollections
+      match /{subcollection}/{document=**} {
+        allow read: if belongsToOrganization(organizationId);
+        allow write: if belongsToOrganization(organizationId);
+      }
+    }
+    
+    // Invites collection
+    match /invites/{inviteId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+  }
+}
